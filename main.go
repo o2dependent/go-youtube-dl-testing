@@ -81,8 +81,12 @@ func main() {
 	}
 
 	// Concat audio and video using ffmpeg
-	cmd := exec.Command("ffmpeg", "-i video.mp4 -i audio.mp4 -map 0:v -map 1:a -codec copy -shortest out.mp4")
+	cmd := exec.Command("ffmpeg", "-i", "video.mp4", "-i", "audio.mp4", "-c:v", "copy", "-c:a", "aac", "output.mp4")
 	if err := cmd.Run(); err != nil {
 		panic(err)
 	}
+
+	// Delete video and audio file
+	os.Remove("video.mp4")
+	os.Remove("audio.mp4")
 }
