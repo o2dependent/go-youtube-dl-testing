@@ -5,13 +5,87 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kkdai/youtube/v2"
 )
 
+type QualityInfo struct {
+	Quality      string
+	AudioQuality string
+}
+
+type Info struct {
+	Author      string
+	Title       string
+	Duration    time.Duration
+	PublishDate time.Time
+	QualityInfo []QualityInfo
+}
+
 func main() {
-	videoID := "5URefVYaJrA"
+	testingVideoUrls := [4]string{
+		"https://www.youtube.com/watch?v=SpH83KzVKDc", // JPEGMAFIA - SIN MIEDO
+		"https://www.youtube.com/watch?v=JtR9JkVk9aU", // I ᐸ3 Harajuku ft. Fraxiom
+		"https://www.youtube.com/watch?v=IuJIbXpex_s", // 100 gecs stupid horse (Remix)
+		"https://www.youtube.com/watch?v=1Bw2dTY3SsQ", // 100 gecs - mememe
+	}
+	for i := 0; i < len(testingVideoUrls); i++ {
+		info, err := getImportantInfo(testingVideoUrls[i])
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println("---- quality " + strconv.FormatInt(int64(i), 10) + " ----")
+		fmt.Println(&info)
+	}
+
+}
+
+func getImportantInfo(videoUrl string) (Info, error) {
+	videoID, err := youtube.ExtractVideoID(videoUrl)
+	if err != nil {
+		return Info{}, err
+	}
+
+	client := youtube.Client{}
+
+	video, err := client.GetVideo(videoID)
+	if err != nil {
+		return Info{}, err
+	}
+	var qualityInfo []QualityInfo
+
+	formats := video.Formats
+	formats.Sort()
+
+	for i := 0; i < len(video.Formats); i++ {
+		f := formats[i]
+		qualityInfo = append(qualityInfo, QualityInfo{
+			Quality:      f.Quality,
+			AudioQuality: f.AudioQuality,
+		})
+	}
+
+	info := Info{
+		Author:      video.Author,
+		Title:       video.Title,
+		Duration:    video.Duration,
+		PublishDate: video.PublishDate,
+		QualityInfo: qualityInfo,
+	}
+
+	return info, err
+}
+
+func download(videoUrl string, quality string, audioQuality string) {
+	videoID, err := youtube.ExtractVideoID(videoUrl)
+	if err != nil {
+		panic(err)
+	}
+
 	client := youtube.Client{}
 
 	video, err := client.GetVideo(videoID)
@@ -30,7 +104,7 @@ func main() {
 		fmt.Println(f.Quality)
 		fmt.Println(f.MimeType)
 
-		return f.Quality == "hd1440" && strings.Contains(f.MimeType, "video/mp4")
+		return f.Quality == quality && strings.Contains(f.MimeType, "video/mp4")
 	})
 	fmt.Println(formats)
 
